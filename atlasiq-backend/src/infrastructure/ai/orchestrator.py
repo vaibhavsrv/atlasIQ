@@ -26,7 +26,8 @@ def get_llm():
     )
 
 def is_mock_mode():
-    return os.getenv("OPENROUTER_API_KEY", "dummy_key_to_prevent_startup_crash") == "dummy_key_to_prevent_startup_crash"
+    key = os.getenv("OPENROUTER_API_KEY", "")
+    return not key or key == "dummy_key_to_prevent_startup_crash" or key == "your_openrouter_api_key_here"
 
 def market_agent(state: AgentState) -> dict:
     """Uses LLM to synthesize realistic demographics based on the query."""
