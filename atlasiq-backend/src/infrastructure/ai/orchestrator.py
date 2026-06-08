@@ -17,11 +17,16 @@ class AgentState(TypedDict):
     final_strategy: str
 
 def get_llm():
-    api_key = os.getenv("OPENAI_API_KEY", "dummy_key_to_prevent_startup_crash")
-    return ChatOpenAI(model="gpt-4o-mini", temperature=0.2, api_key=api_key)
+    api_key = os.getenv("OPENROUTER_API_KEY", "dummy_key_to_prevent_startup_crash")
+    return ChatOpenAI(
+        base_url="https://openrouter.ai/api/v1",
+        api_key=api_key,
+        model="openai/gpt-4o-mini",
+        temperature=0.2,
+    )
 
 def is_mock_mode():
-    return os.getenv("OPENAI_API_KEY", "dummy_key_to_prevent_startup_crash") == "dummy_key_to_prevent_startup_crash"
+    return os.getenv("OPENROUTER_API_KEY", "dummy_key_to_prevent_startup_crash") == "dummy_key_to_prevent_startup_crash"
 
 def market_agent(state: AgentState) -> dict:
     """Uses LLM to synthesize realistic demographics based on the query."""
