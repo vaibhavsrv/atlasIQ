@@ -54,14 +54,21 @@ def get_simulation(id: str, db: Session = Depends(get_db)):
 @router.post("/run", response_model=SimulationResponse)
 def run_what_if_simulation(request: SimulationRequest, db: Session = Depends(get_db)):
     try:
-        result = run_simulation(project_id=request.project_id, query=request.query)
+        from src.infrastructure.database.repositories import ProjectRepository
+        proj_repo = ProjectRepository(db)
+        project = proj_repo.get_by_id(request.project_id)
+        if not project:
+            raise HTTPException(status_code=404, detail="Project not found")
+            
+        result = run_simulation(project_id=request.project_id, query=request.query, budget=project.budget)
         repo = SimulationRepository(db)
         s = repo.create(
             project_id=request.project_id,
             query=request.query,
             recommendation=result.get("final_strategy", ""),
             revenue_projection=result.get("revenue_projection", {}),
-            risk_score=result.get("risk_score", {})
+            risk_score=result.get("risk_score", {}),
+            forecast_data=result.get("forecast_data", [])
         )
         return SimulationResponse(
             id=s.id, project_id=s.project_id, query=s.query, status=s.status,

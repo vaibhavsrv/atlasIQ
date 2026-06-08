@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from src.infrastructure.database.models import ProjectModel, SimulationModel
+from src.infrastructure.database.models import ProjectModel, SimulationModel, ForecastModel
 import uuid
 import json
 
@@ -53,7 +53,7 @@ class SimulationRepository:
     def get_by_id(self, simulation_id: str):
         return self.db.query(SimulationModel).filter(SimulationModel.id == simulation_id).first()
 
-    def create(self, project_id: str, query: str, recommendation: str, revenue_projection: dict, risk_score: dict):
+    def create(self, project_id: str, query: str, recommendation: str, revenue_projection: dict, risk_score: dict, forecast_data: list = None):
         db_sim = SimulationModel(
             id=str(uuid.uuid4()),
             project_id=project_id,
@@ -63,6 +63,15 @@ class SimulationRepository:
             risk_score=json.dumps(risk_score)
         )
         self.db.add(db_sim)
+        
+        if forecast_data:
+            db_forecast = ForecastModel(
+                id=str(uuid.uuid4()),
+                simulation_id=db_sim.id,
+                time_series_data=json.dumps(forecast_data)
+            )
+            self.db.add(db_forecast)
+            
         self.db.commit()
         self.db.refresh(db_sim)
         return db_sim

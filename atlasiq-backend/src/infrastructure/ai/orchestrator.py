@@ -7,13 +7,26 @@ import os
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import PromptTemplate
 
+from src.domain.services.location_intelligence import LocationIntelligenceService
+from src.domain.services.simulation_engine import SimulationEngine
+from src.domain.services.forecasting import ForecastingService
+from src.infrastructure.database.config import SessionLocal
+from src.infrastructure.database.models import IndustryBenchmarkModel
+
 class AgentState(TypedDict):
     messages: Annotated[Sequence[BaseMessage], operator.add]
     project_id: str
+    budget: float
+    query: str
+    industry: str
+    lat: float
+    lon: float
+    benchmark: dict
     location_data: dict
     competitor_data: dict
     revenue_projection: dict
     risk_score: dict
+    forecast_data: list
     final_strategy: str
 
 def get_llm():
@@ -25,88 +38,109 @@ def get_llm():
         temperature=0.2,
     )
 
-
+def extract_intent(query: str):
+    """Extracts city and industry from user query using LLM."""
+    prompt = PromptTemplate.from_template(
+        "Extract the target 'city' and 'industry' from this business expansion query: '{query}'. "
+        "Valid industries: 'Coffee Shop', 'Restaurant', 'Gym', 'Retail Store', 'Salon', 'Clinic', 'Coworking Space', 'E-commerce Warehouse'. "
+        "Return ONLY a JSON object with 'city' and 'industry'."
+    )
+    response = get_llm().invoke(prompt.format(query=query)).content
+    try:
+        cleaned = response.replace('```json', '').replace('```', '').strip()
+        data = json.loads(cleaned)
+        return data.get("city", "Seattle"), data.get("industry", "Coffee Shop")
+    except:
+        return "Seattle", "Coffee Shop"
 
 def market_agent(state: AgentState) -> dict:
-    """Uses LLM to synthesize realistic demographics based on the query."""
+    city, industry = extract_intent(state["query"])
+    
+    # Get benchmark from DB
+    db = SessionLocal()
+    benchmark_record = db.query(IndustryBenchmarkModel).filter(IndustryBenchmarkModel.industry_name == industry).first()
+    if benchmark_record:
+        benchmark = {
+            "avg_revenue": benchmark_record.avg_revenue,
+            "avg_rent": benchmark_record.avg_rent,
+            "avg_cac": benchmark_record.avg_cac,
+            "avg_margins": benchmark_record.avg_margins,
+            "risk_multiplier": benchmark_record.risk_multiplier,
+            "growth_rate": benchmark_record.growth_rate
+        }
+    else:
+        benchmark = {"avg_revenue": 500000, "avg_rent": 60000, "avg_margins": 0.15, "risk_multiplier": 1.0, "growth_rate": 0.05}
+    db.close()
 
-    query = state["messages"][0].content
-    prompt = PromptTemplate.from_template(
-        "Analyze the following business expansion scenario: '{query}'. "
-        "Generate a highly realistic JSON object containing 'population' (int), 'avg_income' (int), "
-        "and 'saturation' (string: low/medium/high) for the target area. Output ONLY valid JSON."
-    )
-    response = get_llm().invoke(prompt.format(query=query)).content
-    cleaned = response.replace('```json', '').replace('```', '').strip()
-    data = json.loads(cleaned)
-    return {"location_data": data}
+    loc_service = LocationIntelligenceService()
+    lat, lon, display_name = loc_service.geocode(city)
+    market_metrics = loc_service.get_market_metrics(lat, lon)
+    
+    return {
+        "industry": industry,
+        "lat": lat,
+        "lon": lon,
+        "benchmark": benchmark,
+        "location_data": market_metrics
+    }
 
 def competitor_agent(state: AgentState) -> dict:
-    """Uses LLM to synthesize competitor data."""
-    query = state["messages"][0].content
-    prompt = PromptTemplate.from_template(
-        "For the expansion scenario: '{query}'. "
-        "Generate a JSON object with 'competitors' (list of 3 realistic competitor names) "
-        "and 'threat_level' (string: low/medium/high). Output ONLY valid JSON."
-    )
-    response = get_llm().invoke(prompt.format(query=query)).content
-    cleaned = response.replace('```json', '').replace('```', '').strip()
-    data = json.loads(cleaned)
-    return {"competitor_data": data}
+    loc_service = LocationIntelligenceService()
+    competitors = loc_service.get_competitors(state["lat"], state["lon"], radius=5000, industry=state["industry"])
+    return {
+        "competitor_data": {"competitors": competitors, "count": len(competitors)}
+    }
 
 def revenue_agent(state: AgentState) -> dict:
-    """Uses LLM to project ROI based on market and competitor data."""
-    query = state["messages"][0].content
-    market = state["location_data"]
-    comp = state["competitor_data"]
-    prompt = PromptTemplate.from_template(
-        "Scenario: {query}. Market: {market}. Competitors: {comp}. "
-        "Generate realistic financial projections. Return JSON with 'year_1_roi' (float, e.g., 18.5) "
-        "and 'payback_months' (int, e.g., 24). Output ONLY valid JSON."
+    sim_engine = SimulationEngine()
+    financials = sim_engine.calculate_financials(
+        benchmark=state["benchmark"],
+        market=state["location_data"],
+        competitors=state["competitor_data"]["competitors"],
+        budget=state["budget"]
     )
-    response = get_llm().invoke(prompt.format(query=query, market=market, comp=comp)).content
-    cleaned = response.replace('```json', '').replace('```', '').strip()
-    data = json.loads(cleaned)
-    return {"revenue_projection": data}
+    return {"revenue_projection": financials}
 
 def risk_agent(state: AgentState) -> dict:
-    """Uses LLM to calculate risk scores."""
-    query = state["messages"][0].content
-    market = state["location_data"]
-    comp = state["competitor_data"]
-    prompt = PromptTemplate.from_template(
-        "Scenario: {query}. Market: {market}. Competitors: {comp}. "
-        "Identify 2 key risks and an overall risk score. Return JSON with "
-        "'overall_risk' (low/moderate/high) and 'factors' (list of 2 strings). Output ONLY valid JSON."
+    sim_engine = SimulationEngine()
+    risk = sim_engine.calculate_risk(
+        benchmark=state["benchmark"],
+        market=state["location_data"],
+        competitors=state["competitor_data"]["competitors"],
+        financials=state["revenue_projection"]
     )
-    response = get_llm().invoke(prompt.format(query=query, market=market, comp=comp)).content
-    cleaned = response.replace('```json', '').replace('```', '').strip()
-    data = json.loads(cleaned)
-    return {"risk_score": data}
+    
+    # Generate Forecast here as well
+    forecast_service = ForecastingService()
+    forecast = forecast_service.generate_revenue_forecast(
+        year_1_revenue=state["revenue_projection"]["year_1_revenue"],
+        growth_rate=state["benchmark"].get("growth_rate", 0.05),
+        months=36
+    )
+    
+    return {"risk_score": risk, "forecast_data": forecast}
 
 def strategy_agent(state: AgentState) -> dict:
-    """Uses LLM to synthesize all data into a final markdown recommendation."""
-    query = state["messages"][0].content
+    query = state["query"]
     context = f"""
     Scenario: {query}
-    Market: {state['location_data']}
-    Competitors: {state['competitor_data']}
+    Industry: {state['industry']}
+    Market Stats: {state['location_data']}
+    Competitor Count: {state['competitor_data']['count']}
     Projections: {state['revenue_projection']}
-    Risks: {state['risk_score']}
+    Risk Analysis: {state['risk_score']}
     """
     
     prompt = PromptTemplate.from_template(
-        "You are the AtlasIQ Strategy Agent. Based on the following data, write a highly professional, "
+        "You are the AtlasIQ Strategy Agent. Based on the EXACT mathematical calculations below, write a highly professional, "
         "executive-level markdown recommendation (2-3 paragraphs) for this expansion scenario. "
-        "Include actionable next steps. \n\nData:\n{context}"
+        "Do NOT hallucinate new metrics. Use the provided numbers. Include actionable next steps. \n\nData:\n{context}"
     )
     response = get_llm().invoke(prompt.format(context=context)).content
     return {"final_strategy": response}
 
-# Build LangGraph
 def build_orchestrator():
     workflow = StateGraph(AgentState)
-
     workflow.add_node("market", market_agent)
     workflow.add_node("competitor", competitor_agent)
     workflow.add_node("revenue", revenue_agent)
@@ -124,14 +158,21 @@ def build_orchestrator():
 
 orchestrator_app = build_orchestrator()
 
-def run_simulation(project_id: str, query: str):
+def run_simulation(project_id: str, query: str, budget: float = 500000):
     initial_state = {
         "messages": [HumanMessage(content=query)],
         "project_id": project_id,
+        "query": query,
+        "budget": budget,
+        "industry": "",
+        "lat": 0.0,
+        "lon": 0.0,
+        "benchmark": {},
         "location_data": {},
         "competitor_data": {},
         "revenue_projection": {},
         "risk_score": {},
+        "forecast_data": [],
         "final_strategy": ""
     }
     result = orchestrator_app.invoke(initial_state)
