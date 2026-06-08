@@ -3,6 +3,7 @@ import operator
 import json
 from langgraph.graph import StateGraph, END
 from langchain_core.messages import BaseMessage, HumanMessage
+import os
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import PromptTemplate
 
@@ -15,9 +16,10 @@ class AgentState(TypedDict):
     risk_score: dict
     final_strategy: str
 
-# Initialize LLM (Requires OPENAI_API_KEY in environment)
-# Using a lightweight model for speed in this skeleton
-llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.2)
+def get_llm():
+    # If key is missing, this will fail when called, but won't crash the server on startup
+    api_key = os.getenv("OPENAI_API_KEY", "dummy_key_to_prevent_startup_crash")
+    return ChatOpenAI(model="gpt-4o-mini", temperature=0.2, api_key=api_key)
 
 def market_agent(state: AgentState) -> dict:
     """Uses LLM to synthesize realistic demographics based on the query."""
@@ -27,7 +29,7 @@ def market_agent(state: AgentState) -> dict:
         "Generate a highly realistic JSON object containing 'population' (int), 'avg_income' (int), "
         "and 'saturation' (string: low/medium/high) for the target area. Output ONLY valid JSON."
     )
-    response = llm.invoke(prompt.format(query=query)).content
+    response = get_llm().invoke(prompt.format(query=query)).content
     try:
         # Strip markdown formatting if present
         cleaned = response.replace('```json', '').replace('```', '').strip()
@@ -44,7 +46,7 @@ def competitor_agent(state: AgentState) -> dict:
         "Generate a JSON object with 'competitors' (list of 3 realistic competitor names) "
         "and 'threat_level' (string: low/medium/high). Output ONLY valid JSON."
     )
-    response = llm.invoke(prompt.format(query=query)).content
+    response = get_llm().invoke(prompt.format(query=query)).content
     try:
         cleaned = response.replace('```json', '').replace('```', '').strip()
         data = json.loads(cleaned)
@@ -62,7 +64,7 @@ def revenue_agent(state: AgentState) -> dict:
         "Generate realistic financial projections. Return JSON with 'year_1_roi' (float, e.g., 18.5) "
         "and 'payback_months' (int, e.g., 24). Output ONLY valid JSON."
     )
-    response = llm.invoke(prompt.format(query=query, market=market, comp=comp)).content
+    response = get_llm().invoke(prompt.format(query=query, market=market, comp=comp)).content
     try:
         cleaned = response.replace('```json', '').replace('```', '').strip()
         data = json.loads(cleaned)
@@ -80,7 +82,7 @@ def risk_agent(state: AgentState) -> dict:
         "Identify 2 key risks and an overall risk score. Return JSON with "
         "'overall_risk' (low/moderate/high) and 'factors' (list of 2 strings). Output ONLY valid JSON."
     )
-    response = llm.invoke(prompt.format(query=query, market=market, comp=comp)).content
+    response = get_llm().invoke(prompt.format(query=query, market=market, comp=comp)).content
     try:
         cleaned = response.replace('```json', '').replace('```', '').strip()
         data = json.loads(cleaned)
@@ -103,7 +105,7 @@ def strategy_agent(state: AgentState) -> dict:
         "executive-level markdown recommendation (2-3 paragraphs) for this expansion scenario. "
         "Include actionable next steps. \n\nData:\n{context}"
     )
-    response = llm.invoke(prompt.format(context=context)).content
+    response = get_llm().invoke(prompt.format(context=context)).content
     return {"final_strategy": response}
 
 # Build LangGraph
