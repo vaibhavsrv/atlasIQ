@@ -16,6 +16,8 @@ class SimulationRequest(BaseModel):
     project_id: str
     query: str
 
+from src.infrastructure.database.models import ForecastModel
+
 class SimulationResponse(BaseModel):
     id: str
     project_id: str
@@ -24,6 +26,7 @@ class SimulationResponse(BaseModel):
     recommendation: str
     revenue_projection: dict
     risk_score: dict
+    forecast_data: list = []
 
 @router.get("", response_model=List[SimulationResponse])
 def get_simulations(db: Session = Depends(get_db)):
@@ -44,11 +47,16 @@ def get_simulation(id: str, db: Session = Depends(get_db)):
     s = repo.get_by_id(id)
     if not s:
         raise HTTPException(status_code=404, detail="Simulation not found")
+        
+    forecast_record = db.query(ForecastModel).filter(ForecastModel.simulation_id == id).first()
+    forecast_data = json.loads(forecast_record.time_series_data) if forecast_record else []
+    
     return SimulationResponse(
         id=s.id, project_id=s.project_id, query=s.query, status=s.status,
         recommendation=s.recommendation,
         revenue_projection=json.loads(s.revenue_projection),
-        risk_score=json.loads(s.risk_score)
+        risk_score=json.loads(s.risk_score),
+        forecast_data=forecast_data
     )
 
 @router.post("/run", response_model=SimulationResponse)
@@ -74,7 +82,8 @@ def run_what_if_simulation(request: SimulationRequest, db: Session = Depends(get
             id=s.id, project_id=s.project_id, query=s.query, status=s.status,
             recommendation=s.recommendation,
             revenue_projection=json.loads(s.revenue_projection),
-            risk_score=json.loads(s.risk_score)
+            risk_score=json.loads(s.risk_score),
+            forecast_data=result.get("forecast_data", [])
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
