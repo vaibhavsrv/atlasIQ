@@ -1,0 +1,17 @@
+fastapi
+uvicorn
+pydantic
+sqlalchemy
+alembic
+psycopg2-binary
+qdrant-client
+neo4j
+redis
+langgraph
+llama-index
+prophet
+xgboost
+pandas
+numpy
+python-dotenv
+pytest
