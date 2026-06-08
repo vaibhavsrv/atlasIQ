@@ -36,3 +36,27 @@ def create_project(project: ProjectCreate, db: Session = Depends(get_db)):
         budget=new_project.budget,
         status=new_project.status
     )
+
+@router.get("/{project_id}", response_model=ProjectResponse)
+def get_project(project_id: str, db: Session = Depends(get_db)):
+    repo = ProjectRepository(db)
+    p = repo.get_by_id(project_id)
+    if not p:
+        raise HTTPException(status_code=404, detail="Project not found")
+    return ProjectResponse(id=p.id, name=p.name, budget=p.budget, status=p.status)
+
+@router.put("/{project_id}", response_model=ProjectResponse)
+def update_project(project_id: str, project: ProjectCreate, db: Session = Depends(get_db)):
+    repo = ProjectRepository(db)
+    p = repo.update(project_id, project.name, project.budget, "planning")
+    if not p:
+        raise HTTPException(status_code=404, detail="Project not found")
+    return ProjectResponse(id=p.id, name=p.name, budget=p.budget, status=p.status)
+
+@router.delete("/{project_id}")
+def delete_project(project_id: str, db: Session = Depends(get_db)):
+    repo = ProjectRepository(db)
+    success = repo.delete(project_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Project not found")
+    return {"message": "Project deleted successfully"}

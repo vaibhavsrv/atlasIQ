@@ -25,6 +25,24 @@ class ProjectRepository:
         self.db.refresh(db_project)
         return db_project
 
+    def update(self, project_id: str, name: str, budget: float, status: str):
+        db_project = self.get_by_id(project_id)
+        if db_project:
+            db_project.name = name
+            db_project.budget = budget
+            db_project.status = status
+            self.db.commit()
+            self.db.refresh(db_project)
+        return db_project
+
+    def delete(self, project_id: str):
+        db_project = self.get_by_id(project_id)
+        if db_project:
+            self.db.delete(db_project)
+            self.db.commit()
+            return True
+        return False
+
 class SimulationRepository:
     def __init__(self, db: Session):
         self.db = db

@@ -66,3 +66,62 @@ class SimulationModel(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
     project = relationship("ProjectModel")
+
+class ForecastModel(Base):
+    __tablename__ = "forecasts"
+    id = Column(String, primary_key=True, index=True)
+    simulation_id = Column(String, ForeignKey("simulations.id"))
+    time_series_data = Column(String) # JSON string of Prophet arrays
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+class CompetitorModel(Base):
+    __tablename__ = "competitors"
+    id = Column(String, primary_key=True, index=True)
+    location_id = Column(String, ForeignKey("locations.id"))
+    name = Column(String)
+    distance = Column(Float)
+    threat_level = Column(String)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+class DocumentModel(Base):
+    __tablename__ = "documents"
+    id = Column(String, primary_key=True, index=True)
+    project_id = Column(String, ForeignKey("projects.id"))
+    filename = Column(String)
+    content_type = Column(String)
+    vector_id = Column(String) # Ref to Qdrant
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+class IndustryBenchmarkModel(Base):
+    __tablename__ = "industry_benchmarks"
+    id = Column(String, primary_key=True, index=True)
+    industry_name = Column(String, unique=True, index=True)
+    avg_revenue = Column(Float)
+    avg_rent = Column(Float)
+    avg_cac = Column(Float)
+    avg_margins = Column(Float)
+    risk_multiplier = Column(Float)
+    growth_rate = Column(Float)
+
+class KnowledgeGraphModel(Base):
+    __tablename__ = "knowledge_graph"
+    id = Column(String, primary_key=True, index=True)
+    entity_id = Column(String, index=True)
+    node_type = Column(String)
+    relations = Column(String) # JSON
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+class NotificationModel(Base):
+    __tablename__ = "notifications"
+    id = Column(String, primary_key=True, index=True)
+    user_id = Column(String, ForeignKey("users.id"))
+    message = Column(String)
+    is_read = Column(String, default="false")
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+class ReportModel(Base):
+    __tablename__ = "reports"
+    id = Column(String, primary_key=True, index=True)
+    simulation_id = Column(String, ForeignKey("simulations.id"))
+    pdf_url = Column(String)
+    created_at = Column(DateTime, default=datetime.utcnow)
