@@ -62,6 +62,11 @@ export default function SimulationsPage() {
                 <option key={p.id} value={p.id}>{p.name}</option>
               ))}
             </select>
+            {projects.length === 0 && (
+              <p className="text-sm text-amber-600 mt-2 font-medium">
+                You must create a Project first before running a simulation. <Link href="/projects/new" className="underline">Create one here.</Link>
+              </p>
+            )}
           </div>
           <div className="flex gap-4">
             <div className="flex-1 relative">
@@ -71,8 +76,9 @@ export default function SimulationsPage() {
                 value={query}
                 onChange={e => setQuery(e.target.value)}
                 placeholder="E.g., What happens if I open 2 stores in Mumbai?" 
-                className="w-full pl-12 pr-4 py-3 bg-neutral-50 border-none outline-none rounded-xl text-neutral-900 placeholder-neutral-400 font-light focus:ring-2 focus:ring-neutral-200 transition-shadow"
+                className="w-full pl-12 pr-4 py-3 bg-neutral-50 border-none outline-none rounded-xl text-neutral-900 placeholder-neutral-400 font-light focus:ring-2 focus:ring-neutral-200 transition-shadow disabled:opacity-50"
                 onKeyDown={e => e.key === 'Enter' && handleRun()}
+                disabled={projects.length === 0}
               />
             </div>
             <button 

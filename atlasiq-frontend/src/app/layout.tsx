@@ -45,7 +45,7 @@ export default function RootLayout({
               <Link href="/simulations" className="text-sm font-medium text-neutral-500 hover:text-neutral-900 transition-colors">
                 Simulations
               </Link>
-              <Link href="/projects" className="inline-flex items-center justify-center bg-neutral-900 hover:bg-neutral-800 text-white rounded-full px-6 h-9 text-sm font-medium shadow-sm transition-all hover:shadow-md">
+              <Link href="/projects/new" className="inline-flex items-center justify-center bg-neutral-900 hover:bg-neutral-800 text-white rounded-full px-6 h-9 text-sm font-medium shadow-sm transition-all hover:shadow-md">
                 New Plan
               </Link>
             </div>
