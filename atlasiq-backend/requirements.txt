@@ -15,3 +15,5 @@ pandas
 numpy
 python-dotenv
 pytest
+reportlab
+langchain-openai
