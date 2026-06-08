@@ -1,5 +1,9 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from dotenv import load_dotenv
+
+load_dotenv()
+
 from src.infrastructure.database.config import Base, engine
 from src.presentation.api.router import router as simulation_router
 from src.presentation.api.projects import router as projects_router

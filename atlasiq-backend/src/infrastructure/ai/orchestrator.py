@@ -17,12 +17,17 @@ class AgentState(TypedDict):
     final_strategy: str
 
 def get_llm():
-    # If key is missing, this will fail when called, but won't crash the server on startup
     api_key = os.getenv("OPENAI_API_KEY", "dummy_key_to_prevent_startup_crash")
     return ChatOpenAI(model="gpt-4o-mini", temperature=0.2, api_key=api_key)
 
+def is_mock_mode():
+    return os.getenv("OPENAI_API_KEY", "dummy_key_to_prevent_startup_crash") == "dummy_key_to_prevent_startup_crash"
+
 def market_agent(state: AgentState) -> dict:
     """Uses LLM to synthesize realistic demographics based on the query."""
+    if is_mock_mode():
+        return {"location_data": {"population": 1500000, "avg_income": 95000, "saturation": "medium"}}
+        
     query = state["messages"][0].content
     prompt = PromptTemplate.from_template(
         "Analyze the following business expansion scenario: '{query}'. "
@@ -31,7 +36,6 @@ def market_agent(state: AgentState) -> dict:
     )
     response = get_llm().invoke(prompt.format(query=query)).content
     try:
-        # Strip markdown formatting if present
         cleaned = response.replace('```json', '').replace('```', '').strip()
         data = json.loads(cleaned)
     except:
@@ -40,6 +44,9 @@ def market_agent(state: AgentState) -> dict:
 
 def competitor_agent(state: AgentState) -> dict:
     """Uses LLM to synthesize competitor data."""
+    if is_mock_mode():
+        return {"competitor_data": {"competitors": ["Local Cafe", "Global Chain", "Regional Roaster"], "threat_level": "medium"}}
+
     query = state["messages"][0].content
     prompt = PromptTemplate.from_template(
         "For the expansion scenario: '{query}'. "
@@ -56,6 +63,9 @@ def competitor_agent(state: AgentState) -> dict:
 
 def revenue_agent(state: AgentState) -> dict:
     """Uses LLM to project ROI based on market and competitor data."""
+    if is_mock_mode():
+        return {"revenue_projection": {"year_1_roi": 18.5, "payback_months": 24}}
+
     query = state["messages"][0].content
     market = state["location_data"]
     comp = state["competitor_data"]
@@ -74,6 +84,9 @@ def revenue_agent(state: AgentState) -> dict:
 
 def risk_agent(state: AgentState) -> dict:
     """Uses LLM to calculate risk scores."""
+    if is_mock_mode():
+        return {"risk_score": {"overall_risk": "moderate", "factors": ["Regulatory uncertainty", "High initial CAPEX"]}}
+
     query = state["messages"][0].content
     market = state["location_data"]
     comp = state["competitor_data"]
@@ -100,6 +113,20 @@ def strategy_agent(state: AgentState) -> dict:
     Projections: {state['revenue_projection']}
     Risks: {state['risk_score']}
     """
+    
+    if is_mock_mode():
+        mock_strategy = (
+            "### Expansion Strategy Recommendation (MOCK MODE)\n\n"
+            "*Note: This is a simulated response because no OpenAI API Key was provided in the `.env` file.*\n\n"
+            "Based on the analysis, the market shows strong potential with a population density capable of supporting new venues. "
+            "However, competitor saturation remains a moderate threat. We recommend proceeding with Phase 1 expansion while closely "
+            "monitoring initial capital expenditures to maintain the projected 18.5% Year 1 ROI.\n\n"
+            "**Next Steps:**\n"
+            "- Finalize real estate lease agreements in secondary commercial zones.\n"
+            "- Launch targeted local marketing campaigns 30 days prior to launch."
+        )
+        return {"final_strategy": mock_strategy}
+
     prompt = PromptTemplate.from_template(
         "You are the AtlasIQ Strategy Agent. Based on the following data, write a highly professional, "
         "executive-level markdown recommendation (2-3 paragraphs) for this expansion scenario. "
