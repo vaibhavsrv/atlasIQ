@@ -120,8 +120,16 @@ def risk_agent(state: AgentState) -> dict:
     
     return {"risk_score": risk, "forecast_data": forecast}
 
+from src.domain.services.document_rag import DocumentRAGService
+
 def strategy_agent(state: AgentState) -> dict:
     query = state["query"]
+    project_id = state["project_id"]
+    
+    # Query Knowledge Base (RAG)
+    rag_service = DocumentRAGService()
+    rag_context = rag_service.query_project_documents(project_id, query)
+    
     context = f"""
     Scenario: {query}
     Industry: {state['industry']}
@@ -131,10 +139,14 @@ def strategy_agent(state: AgentState) -> dict:
     Risk Analysis: {state['risk_score']}
     """
     
+    if rag_context:
+        context += f"\nInternal Document Insights:\n{rag_context}\n"
+    
     prompt = PromptTemplate.from_template(
         "You are the AtlasIQ Strategy Agent. Based on the EXACT mathematical calculations below, write a highly professional, "
         "executive-level markdown recommendation (2-3 paragraphs) for this expansion scenario. "
-        "Do NOT hallucinate new metrics. Use the provided numbers. Include actionable next steps. \n\nData:\n{context}"
+        "Do NOT hallucinate new metrics. Use the provided numbers. Incorporate any 'Internal Document Insights' into your reasoning if present. "
+        "Include actionable next steps. \n\nData:\n{context}"
     )
     response = get_llm().invoke(prompt.format(context=context)).content
     return {"final_strategy": response}

@@ -17,3 +17,4 @@ python-dotenv
 pytest
 reportlab
 langchain-openai
+PyPDF2
