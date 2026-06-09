@@ -35,7 +35,7 @@ def get_llm():
         base_url="https://openrouter.ai/api/v1",
         api_key=api_key,
         model="openai/gpt-4o-mini",
-        temperature=0.2,
+        temperature=0.7,
     )
 
 def extract_intent(query: str):
