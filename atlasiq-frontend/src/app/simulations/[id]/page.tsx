@@ -29,7 +29,7 @@ export default function SimulationDetails() {
   }, [id]);
 
   const handleExport = () => {
-    window.open(`http://localhost:8000/api/v1/simulations/${id}/export`, '_blank');
+    window.open(`http://127.0.0.1:8000/api/v1/simulations/${id}/export`, '_blank');
   };
 
   const handleRecalculate = async () => {

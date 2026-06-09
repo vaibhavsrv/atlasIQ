@@ -38,7 +38,7 @@ export default function RegisterPage() {
     setError('');
 
     try {
-      const res = await fetch('http://localhost:8000/api/v1/auth/send-otp', {
+      const res = await fetch('http://127.0.0.1:8000/api/v1/auth/send-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ identifier }),
@@ -61,7 +61,7 @@ export default function RegisterPage() {
     setError('');
 
     try {
-      const res = await fetch('http://localhost:8000/api/v1/auth/verify-otp', {
+      const res = await fetch('http://127.0.0.1:8000/api/v1/auth/verify-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ identifier, otp_code: otpCode }),
@@ -83,7 +83,7 @@ export default function RegisterPage() {
     setError('');
 
     try {
-      const res = await fetch('http://localhost:8000/api/v1/auth/register', {
+      const res = await fetch('http://127.0.0.1:8000/api/v1/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ identifier, username, password, confirm_password: confirmPassword }),
