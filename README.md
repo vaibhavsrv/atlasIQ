@@ -1,6 +1,6 @@
 # AtlasIQ - Business Expansion Operating System
+<img width="832" height="400" alt="Screenshot 2026-06-09 at 22 34 09" src="https://github.com/user-attachments/assets/61046986-a926-4956-9559-2b504a40f750" />
 
-![AtlasIQ Banner](https://via.placeholder.com/1200x300.png?text=AtlasIQ+-+Business+Expansion+Operating+System)
 
 AtlasIQ is a cutting-edge **Multi-Agent Business Expansion Operating System** designed to help entrepreneurs, franchises, and corporations make data-driven decisions when opening new locations. By leveraging an AI swarm, geospatial data, and financial modeling, AtlasIQ runs comprehensive "What-If" scenarios to project revenue, assess risk, and generate actionable strategic recommendations.
 
