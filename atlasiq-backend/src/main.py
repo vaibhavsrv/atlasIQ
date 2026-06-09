@@ -8,6 +8,7 @@ from src.infrastructure.database.config import Base, engine
 from src.presentation.api.router import router as simulation_router
 from src.presentation.api.projects import router as projects_router
 from src.presentation.api.documents import router as documents_router
+from src.presentation.api.auth import router as auth_router
 
 # Create all tables (in a real app, use Alembic)
 Base.metadata.create_all(bind=engine)
@@ -27,6 +28,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(auth_router)
 app.include_router(simulation_router)
 app.include_router(projects_router)
 app.include_router(documents_router)

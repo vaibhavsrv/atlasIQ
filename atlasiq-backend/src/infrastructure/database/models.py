@@ -7,13 +7,26 @@ class UserModel(Base):
     __tablename__ = "users"
 
     id = Column(String, primary_key=True, index=True)
-    email = Column(String, unique=True, index=True)
+    username = Column(String, unique=True, index=True, nullable=True)
+    email = Column(String, unique=True, index=True, nullable=True)
+    phone_number = Column(String, unique=True, index=True, nullable=True)
     password_hash = Column(String)
+    is_verified = Column(String, default="false")
     role = Column(String, default="user")
-    org_id = Column(String, ForeignKey("organizations.id"))
+    org_id = Column(String, ForeignKey("organizations.id"), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
     organization = relationship("OrganizationModel", back_populates="users")
+
+class OtpModel(Base):
+    __tablename__ = "otps"
+    
+    id = Column(String, primary_key=True, index=True)
+    identifier = Column(String, index=True) # Email or Phone
+    otp_code = Column(String)
+    expires_at = Column(DateTime)
+    is_used = Column(String, default="false")
+    created_at = Column(DateTime, default=datetime.utcnow)
 
 class OrganizationModel(Base):
     __tablename__ = "organizations"
